@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { Sequelize } = require('../../config/connection');
 const { Product, Category, Tag, ProductTag } = require('../../models');
 
 // The `/api/products` endpoint
@@ -8,7 +9,20 @@ router.get('/', async (req, res) => {
   // find all products
   // be sure to include its associated Category and Tag data
   try {
-    const payload = await Product.findAll();
+    const payload = await Product.findAll({
+      include: [{
+        model: Category,
+        where: {
+          id: Sequelize.col('product.category_id')
+        }
+      },
+     {
+        model: Tag,
+        through: {
+          attributes: []
+        }
+      }]
+    });
         res.status(200).json({status: "success", payload})
     } catch (err){
         res.status(500).json({status: "error", payload: err.message})
@@ -16,9 +30,31 @@ router.get('/', async (req, res) => {
 });
 
 // get one product
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   // find a single product by its `id`
   // be sure to include its associated Category and Tag data
+  try {
+    const payload = await Product.findAll({
+      where: {
+        id: req.params.id
+      },
+      include: [{
+        model: Category,
+        where: {
+          id: Sequelize.col('product.category_id')
+        }
+      },
+     {
+        model: Tag,
+        through: {
+          attributes: []
+        }
+      }]
+    });
+        res.status(200).json({status: "success", payload})
+    } catch (err){
+        res.status(500).json({status: "error", payload: err.message})
+    }
 });
 
 // create new product
@@ -98,8 +134,18 @@ router.put('/:id', (req, res) => {
     });
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   // delete one product by its `id` value
+  try {
+    const payload = await Product.destroy({
+      where: {
+        id: req.params.id
+      }
+    })
+    res.status(200).json({status: "success", payload});
+  } catch (err){
+    res.status(500).json({status: "error", payload: err.message})
+  }
 });
 
 module.exports = router;
